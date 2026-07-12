@@ -1,6 +1,7 @@
 /* global ContentService, PropertiesService, SpreadsheetApp, UrlFetchApp, Utilities, CacheService, LockService */
 
 const TZ = 'America/Los_Angeles';
+const DEFAULT_SPREADSHEET_ID = '1lY8G7YZl3n3xvwTWpp1A4z-50gdH2D96Q6jD9bJxCDs';
 const JSON_FIELDS = ['locationIds', 'unityObjectIds', 'recurrenceConfig', 'capabilities', 'readings', 'suppliesUsed', 'attachmentUrls'];
 const SOFT_DELETE = ['Rooms', 'Assets', 'Tasks', 'Supplies', 'DeviceMappings'];
 const SCHEMAS = {
@@ -60,10 +61,23 @@ function authorize(idToken) {
   const props = PropertiesService.getScriptProperties();
   const clientId = props.getProperty('GOOGLE_CLIENT_ID');
   if (!clientId || claims.aud !== clientId || claims.email_verified !== 'true') fail('INVALID_TOKEN', 'The token is not valid for this application.');
-  const allowed = (props.getProperty('ALLOWED_EMAILS') || '').split(',').map(function(value){ return value.trim().toLowerCase(); }).filter(Boolean);
-  if (allowed.length !== 2) fail('SERVER_CONFIG', 'Configure exactly two ALLOWED_EMAILS in Script Properties.');
+  const allowed = authorizedEmails();
+  if (!allowed.length) fail('SERVER_CONFIG', 'Add at least one active email to the Users sheet or ALLOWED_EMAILS Script Property.');
   if (allowed.indexOf(String(claims.email).toLowerCase()) < 0) fail('FORBIDDEN', 'This Google account is not approved for the household.');
   return { email:String(claims.email).toLowerCase(), name:claims.name || claims.email };
+}
+
+function authorizedEmails() {
+  let allowed = [];
+  try {
+    allowed = readAll('Users', true).filter(function(user){ return user.active !== false && user.email; }).map(function(user){ return String(user.email).trim().toLowerCase(); });
+  } catch (_) {
+    // During first-time setup the Users sheet may not exist yet.
+  }
+  if (!allowed.length) {
+    allowed = (PropertiesService.getScriptProperties().getProperty('ALLOWED_EMAILS') || '').split(',').map(function(value){ return value.trim().toLowerCase(); }).filter(Boolean);
+  }
+  return allowed.filter(function(email, index){ return allowed.indexOf(email) === index; });
 }
 
 function bootstrap() {
@@ -167,7 +181,7 @@ function getById(sheetName, id) {
 }
 
 function requireSheet(name) {
-  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || DEFAULT_SPREADSHEET_ID;
   if (!id) fail('SERVER_CONFIG', 'Set SPREADSHEET_ID in Script Properties.');
   const sheet = SpreadsheetApp.openById(id).getSheetByName(name);
   if (!sheet) fail('SCHEMA_MISSING', 'Run setupDatabase() to create the ' + name + ' sheet.');

@@ -1,0 +1,40 @@
+name: Deploy Our Tasks to Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  test-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_APPS_SCRIPT_ENDPOINT: ${{ secrets.VITE_APPS_SCRIPT_ENDPOINT || vars.VITE_APPS_SCRIPT_ENDPOINT }}
+          VITE_APP_URL: https://brooksr.github.io/our-tasks/
+          VITE_BABY_APP_URL: ${{ secrets.VITE_BABY_APP_URL || vars.VITE_BABY_APP_URL }}
+          VITE_MOCK_MODE: "false"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+      - uses: actions/deploy-pages@v4
+        id: deployment

@@ -15,13 +15,13 @@ Create a shared household-maintenance module that:
     
 *   Uses Google authentication.
     
-*   Restricts access to two explicitly approved Google accounts.
+*   Restricts access to explicitly approved active Google accounts.
     
 *   Uses Google Sheets as the primary database.
     
 *   Uses Google Apps Script as the authenticated backend API.
     
-*   Supports both household members equally.
+*   Supports all approved household members equally.
     
 *   Integrates maintenance tasks with rooms, physical assets, Unity objects, and future smart-home controls.
     
@@ -137,9 +137,9 @@ Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQL
 
 Requirements:
 
-*   Only the two approved Google accounts may access household data.
+*   Only active Google accounts listed in the Users sheet may access household data.
     
-*   Both users may:
+*   All approved users may:
     
     *   View all shared tasks.
         
@@ -938,7 +938,7 @@ Use “whoever did not complete it last” as the default rotating-task behavior
 
 Track all assignment changes in TaskEvents.
 
-Both users must still be able to complete any task unless a future setting explicitly restricts it.
+All approved users must still be able to complete any task unless a future setting explicitly restricts it.
 
 Categories
 ----------
@@ -1495,7 +1495,7 @@ Requirements:
 Conflict handling
 -----------------
 
-Because two people may edit simultaneously:
+Because multiple people may edit simultaneously:
 
 *   Use optimistic locking.
     

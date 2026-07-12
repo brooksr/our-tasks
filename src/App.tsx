@@ -90,7 +90,7 @@ function App() {
       .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
   }, [snapshot, category, person, query]);
 
-  if (!signedIn) return <main className="login-page"><section className="login-card"><div className="brand-mark"><House aria-hidden="true" /></div><span className="eyebrow">Private household space</span><h1>Care for the place<br />that cares for you.</h1><p>Shared maintenance, supplies, and a task-aware view of home.</p>{error && <p className="error-banner" role="alert">{error}</p>}<button className="google-button" type="button" onClick={googleSignIn} disabled={loading}><LogIn aria-hidden="true" /> Continue with Google</button><small>Access is limited to the two approved household accounts.</small></section></main>;
+  if (!signedIn) return <main className="login-page"><section className="login-card"><div className="brand-mark"><House aria-hidden="true" /></div><span className="eyebrow">Private household space</span><h1>Care for the place<br />that cares for you.</h1><p>Shared maintenance, supplies, and a task-aware view of home.</p>{error && <p className="error-banner" role="alert">{error}</p>}<button className="google-button" type="button" onClick={googleSignIn} disabled={loading}><LogIn aria-hidden="true" /> Continue with Google</button><small>Access is limited to active household accounts in the Users sheet.</small></section></main>;
   if (loading || !snapshot) return <main className="loading-page"><div className="brand-mark"><House aria-hidden="true" /></div><RefreshCw className="spin" aria-hidden="true" /><p>Opening your household…</p></main>;
 
   const overdue = tasks.filter((task) => dueState(task) === 'overdue');

@@ -12,7 +12,7 @@ The original product brief is preserved in [docs/PRODUCT_SPEC.md](docs/PRODUCT_S
   filters, authentication, sync state, and responsive mobile UI.
 - IndexedDB stores a complete local snapshot and a durable offline action queue.
 - Google Identity Services supplies an ID token in configured mode.
-- Google Apps Script verifies that token and the two-account allowlist on every
+- Google Apps Script verifies that token and the active Users-sheet allowlist on every
   request, then reads and writes Google Sheets with optimistic locking.
 - Unity 6000.5.2f1 and the built-in render pipeline provide the 3D house. The
   current build is lazy-loaded under `public/unity/house`; new maintenance C#
@@ -50,7 +50,6 @@ in `src/config.ts`; environment variables only replace its placeholders.
 | --- | --- |
 | `VITE_BASE_PATH` | GitHub Pages repository path, for example `/our-tasks/` |
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth web client ID |
-| `VITE_PRIMARY_EMAIL` / `VITE_SECONDARY_EMAIL` | Exactly two approved accounts |
 | `VITE_APPS_SCRIPT_ENDPOINT` | Deployed Apps Script `/exec` URL |
 | `VITE_APP_URL` | Canonical deployed app URL used in emails |
 | `VITE_BABY_APP_URL` | Optional link to the separate BabySteps app |
@@ -65,12 +64,14 @@ Follow [docs/SETUP_GOOGLE.md](docs/SETUP_GOOGLE.md). In summary:
 
 1. Create the OAuth web client and authorize the local and Pages origins.
 2. Create an Apps Script project, copy `apps-script/`, and configure Script
-   Properties for the spreadsheet, OAuth client, two emails, and app URL.
+   Properties for the spreadsheet, OAuth client, and app URL. Authorized
+   accounts are managed as active rows in the Users tab.
 3. Run `setupDatabase()`, optionally `seedRecommendedData()`, and
    `installReminderTriggers()`.
 4. Deploy as a web app executing as the owner, with access set to anyone. The
    backend still rejects any request without a valid token for an allowed user.
-5. Add the matching GitHub Actions repository variables.
+5. Add the matching GitHub Actions repository secrets or variables. A
+   Codespaces-only secret is not exposed to the deployment workflow.
 
 No Google client secret, private key, or smart-home credential belongs in this
 repository or in Google Sheets.
@@ -124,8 +125,8 @@ files in the `our-tasks-runtime-v1` cache after the first visit.
 
 - **Local demo appears in production:** all four Google variables must be set;
   placeholder detection is intentionally strict.
-- **Forbidden after Google login:** the browser variables and Apps Script
-  `ALLOWED_EMAILS` must match, lower/upper case aside.
+- **Forbidden after Google login:** confirm the account has an active row in the
+  Users tab. `ALLOWED_EMAILS` is only a first-setup fallback.
 - **Invalid token:** `GOOGLE_CLIENT_ID` in Script Properties must exactly equal
   the browser client ID.
 - **Schema missing:** run `setupDatabase()` as the Apps Script owner.

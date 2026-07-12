@@ -1,13 +1,13 @@
 # Google setup
 
 This setup has no client secret. The browser receives a public OAuth client ID;
-Apps Script verifies Google ID tokens and the two-email allowlist before it
+Apps Script verifies Google ID tokens and the active Users-sheet allowlist before it
 touches Sheets.
 
 ## 1. OAuth client
 
 1. In Google Cloud Console, create/select a project and configure the OAuth
-   consent screen for the two household testers.
+   consent screen for the household accounts.
 2. Create an **OAuth client ID → Web application**.
 3. Add authorized JavaScript origins, without paths:
    `http://localhost:5173` and `https://YOUR_USER.github.io`.
@@ -20,11 +20,12 @@ touches Sheets.
    **Show appsscript.json** in Project Settings).
 3. In **Project Settings → Script Properties**, add:
    - `GOOGLE_CLIENT_ID`: the exact web client ID.
-   - `ALLOWED_EMAILS`: exactly two comma-separated approved Google addresses.
+   - `ALLOWED_EMAILS`: optional comma-separated bootstrap list. Once the Users
+     tab exists, active rows in that tab are the authorization source.
    - `APP_URL`: the final Pages URL.
-4. Run `setupDatabase()`. It creates a spreadsheet when `SPREADSHEET_ID` is
-   absent, stores the new ID, and creates/migrates every required tab/header.
-   Alternatively set `SPREADSHEET_ID` first to use an empty existing Sheet.
+4. This repository defaults to spreadsheet
+   `1lY8G7YZl3n3xvwTWpp1A4z-50gdH2D96Q6jD9bJxCDs`. Run `setupDatabase()` to
+   confirm/store that ID and migrate required headers.
 5. Optionally run `seedRecommendedData()`. The rich browser demo seed can be
    used as a guide for adding editable household tasks after first connection.
 
@@ -37,7 +38,7 @@ verification, email, triggers, and optional Calendar access.
 2. Execute as **Me** (the household database owner).
 3. Set access to **Anyone**. This makes the endpoint reachable, not the data
    public: `authorize()` still requires a valid ID token for this client and one
-   of the two allowed emails on every POST.
+   of the active Users-sheet emails on every POST.
 4. Deploy and copy the URL ending in `/exec`.
 5. After code changes, create a new deployment version or edit the active
    deployment. A `/dev` URL works only for script editors and is unsuitable for
@@ -45,17 +46,15 @@ verification, email, triggers, and optional Calendar access.
 
 ## 4. Configure local and Pages builds
 
-Create `.env.local` from `.env.example` and set client ID, emails, endpoint, app
+Create `.env.local` from `.env.example` and set the client ID, endpoint, and app
 URL, and an appropriate base path (`/` for ordinary local Vite development).
 
-In GitHub repository **Settings → Secrets and variables → Actions → Variables**,
-add:
+In GitHub repository **Settings → Secrets and variables → Actions**, add these
+as repository Actions secrets or variables (Codespaces-only secrets are not
+available to Actions):
 
 - `VITE_GOOGLE_CLIENT_ID`
-- `VITE_PRIMARY_EMAIL`
-- `VITE_SECONDARY_EMAIL`
 - `VITE_APPS_SCRIPT_ENDPOINT`
-- `VITE_APP_URL`
 - optional `VITE_BABY_APP_URL`
 
 The workflow supplies the repository base path automatically. Enable Pages with
@@ -74,9 +73,10 @@ the backend foundation. Do not call it automatically for every task.
 
 ## Verification
 
-1. Open the deployed app with each approved account; both should load the same
+1. Open the deployed app with each approved account; all should load the same
    snapshot and be able to mutate tasks.
-2. Open it with a third account; the API response must be `FORBIDDEN`.
+2. Open it with an account not listed as active in Users; the API response must
+   be `FORBIDDEN`.
 3. Change a row's version, then submit an older edit; the API must return
    `VERSION_CONFLICT` with local/server details.
 4. Disable the network, perform a snooze, reload, and confirm the action and

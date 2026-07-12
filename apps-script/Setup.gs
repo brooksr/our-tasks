@@ -2,9 +2,9 @@
 
 function setupDatabase() {
   const props = PropertiesService.getScriptProperties();
-  let id = props.getProperty('SPREADSHEET_ID');
+  let id = props.getProperty('SPREADSHEET_ID') || DEFAULT_SPREADSHEET_ID;
   const spreadsheet = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.create('Our Tasks household database');
-  if (!id) { id = spreadsheet.getId(); props.setProperty('SPREADSHEET_ID', id); }
+  props.setProperty('SPREADSHEET_ID', spreadsheet.getId());
   Object.keys(SCHEMAS).forEach(function(name) {
     let sheet = spreadsheet.getSheetByName(name);
     if (!sheet) sheet = spreadsheet.insertSheet(name);
@@ -23,20 +23,25 @@ function setupDatabase() {
 
 function migrateDatabase() { return setupDatabase(); }
 
-function configureProject(spreadsheetId, googleClientId, primaryEmail, secondaryEmail, appUrl) {
+function configureProject(spreadsheetId, googleClientId, allowedEmails, appUrl) {
+  const emailList = Array.isArray(allowedEmails) ? allowedEmails : String(allowedEmails || '').split(',');
   PropertiesService.getScriptProperties().setProperties({
     SPREADSHEET_ID:spreadsheetId, GOOGLE_CLIENT_ID:googleClientId,
-    ALLOWED_EMAILS:[primaryEmail, secondaryEmail].join(','), APP_URL:appUrl
+    ALLOWED_EMAILS:emailList.map(function(email){ return email.trim(); }).filter(Boolean).join(','), APP_URL:appUrl
   }, false);
   return setupDatabase();
 }
 
 function seedRecommendedData() {
   const timestamp = isoNow();
-  const users = (PropertiesService.getScriptProperties().getProperty('ALLOWED_EMAILS') || '').split(',');
+  const users = (PropertiesService.getScriptProperties().getProperty('ALLOWED_EMAILS') || '').split(',').map(function(email){ return email.trim(); }).filter(Boolean);
   const userSheet = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')).getSheetByName('Users');
   if (userSheet.getLastRow() < 2) {
-    [['primary',users[0] || 'REPLACE_WITH_PRIMARY_EMAIL','Brooks','admin'],['secondary',users[1] || 'REPLACE_WITH_SECONDARY_EMAIL','Wife','member']].forEach(function(row){ userSheet.appendRow(row.concat([true,timestamp,timestamp,1])); });
+    users.forEach(function(email, index){
+      const id = index === 0 ? 'primary' : index === 1 ? 'secondary' : 'household-' + (index + 1);
+      const name = index === 0 ? 'Brooks' : index === 1 ? 'Wife' : 'Household';
+      userSheet.appendRow([id,email,name,index === 0 ? 'admin' : 'member',true,timestamp,timestamp,1]);
+    });
   }
   const roomSheet = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')).getSheetByName('Rooms');
   if (roomSheet.getLastRow() < 2) [['room-kitchen','Kitchen','1','interior','Kitchen'],['room-backyard','Backyard','outside','yard','Backyard'],['room-garage','Garage','1','garage','Garage'],['room-whole-home','Whole home','all','house','HouseRoot']].forEach(function(row){ roomSheet.appendRow(row.concat(['',true,timestamp,timestamp,1,''])); });

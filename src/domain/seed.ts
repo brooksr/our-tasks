@@ -67,7 +67,8 @@ export function createSeedSnapshot(): HouseholdSnapshot {
   return {
     users: [
       { ...base, id: 'primary', email: 'demo-primary@local', displayName: 'Brooks', role: 'admin' },
-      { ...base, id: 'secondary', email: 'demo-secondary@local', displayName: 'Wife', role: 'member' }
+      { ...base, id: 'secondary', email: 'demo-secondary@local', displayName: 'Wife', role: 'member' },
+      { ...base, id: 'household', email: 'demo-household@local', displayName: 'Household', role: 'member' }
     ],
     rooms, assets, tasks, supplies,
     events: [{ id: 'event-seed', taskId: 'task-litter-scoop', eventType: 'completed', eventDate: '2026-07-11T16:00:00.000Z', performedBy: 'secondary', previousDueDate: '2026-07-11', nextDueDate: '2026-07-12', notes: 'All done.', createdAt: '2026-07-11T16:00:00.000Z' }]

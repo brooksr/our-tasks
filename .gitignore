@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+UnityProject/Library/
+UnityProject/Temp/
+UnityProject/Logs/
+UnityProject/UserSettings/
+UnityProject/obj/
