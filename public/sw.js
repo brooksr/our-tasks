@@ -1,5 +1,5 @@
-const CACHE = 'our-tasks-shell-v1';
-const RUNTIME = 'our-tasks-runtime-v1';
+const CACHE = 'our-tasks-shell-v2';
+const RUNTIME = 'our-tasks-runtime-v2';
 const scopePath = new URL(self.registration.scope).pathname;
 const shell = [scopePath, `${scopePath}manifest.webmanifest`, `${scopePath}icons/app-icon.svg`];
 
@@ -17,5 +17,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(caches.open(RUNTIME).then(async (cache) => (await cache.match(request)) || fetch(request).then((response) => { if (response.ok) cache.put(request, response.clone()); return response; })));
     return;
   }
-  event.respondWith(fetch(request).then((response) => { if (response.ok) caches.open(RUNTIME).then((cache) => cache.put(request, response.clone())); return response; }).catch(() => caches.match(request).then((cached) => cached || caches.match(scopePath))));
+  event.respondWith(fetch(request).then((response) => {
+    if (response.ok) {
+      const copy = response.clone();
+      caches.open(RUNTIME).then((cache) => cache.put(request, copy));
+    }
+    return response;
+  }).catch(() => caches.match(request).then((cached) => cached || caches.match(scopePath))));
 });

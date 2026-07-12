@@ -51,13 +51,13 @@ export class AppsScriptHouseholdRepository extends LocalHouseholdRepository {
 
   override async saveTask(task: MaintenanceTask) {
     const saved = await super.saveTask(task);
-    if (navigator.onLine) await this.sync();
+    if (navigator.onLine) void this.sync().catch(() => undefined);
     return saved;
   }
 
   override async performAction(input: TaskActionInput) {
     const snapshot = await super.performAction(input);
-    if (navigator.onLine) await this.sync();
+    if (navigator.onLine) void this.sync().catch(() => undefined);
     return snapshot;
   }
 }
