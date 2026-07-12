@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scanned Plan House Preview</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #faf6f1; overflow: hidden; }
+    #unity-canvas { width: 100%; height: 100%; display: block; }
+    #unity-loading {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px;
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: #2e2a26;
+    }
+    #unity-loading-bar { width: 220px; height: 6px; background: #e6ddd1; border-radius: 3px; overflow: hidden; }
+    #unity-progress { width: 0; height: 100%; background: #8a5a3b; transition: width 0.2s ease; }
+    #house-controls {
+      position: fixed; left: 16px; top: 16px; z-index: 4; width: min(320px, calc(100vw - 32px));
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif; color: #2e2a26;
+      background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(46, 42, 38, 0.14);
+      box-shadow: 0 10px 30px rgba(46, 42, 38, 0.14); border-radius: 8px; padding: 12px;
+      backdrop-filter: blur(10px);
+    }
+    #house-controls[hidden] { display: none; }
+    .house-controls-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 10px; }
+    .house-control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+    .house-toggle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin-top: 10px; }
+    .house-control-label { font-size: 0.78rem; color: #645c54; }
+    .house-toggle { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; }
+    .house-toggle input { accent-color: #8a5a3b; }
+    .house-segmented { display: flex; border: 1px solid #d8cfc3; border-radius: 8px; overflow: hidden; }
+    .house-segmented button, .house-button {
+      appearance: none; border: 0; background: #fff; color: #2e2a26; font: inherit;
+      font-size: 0.8rem; padding: 7px 10px; cursor: pointer;
+    }
+    .house-segmented button + button { border-left: 1px solid #d8cfc3; }
+    .house-segmented button.active { background: #2e2a26; color: #fff; }
+    .house-button { border: 1px solid #d8cfc3; border-radius: 8px; }
+    .house-range { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; width: 100%; }
+    .house-range input { width: 100%; accent-color: #8a5a3b; }
+  </style>
+</head>
+<body>
+  <canvas id="unity-canvas" tabindex="-1"></canvas>
+  <section id="house-controls" aria-label="House controls" hidden>
+    <div class="house-controls-title">Home model</div>
+    <div class="house-control-row">
+      <span class="house-control-label">Camera</span>
+      <div class="house-segmented" role="group" aria-label="Camera mode">
+        <button type="button" data-camera-mode="orbit" class="active">Orbit</button>
+        <button type="button" data-camera-mode="walk">Walk</button>
+        <button type="button" data-camera-mode="top">Plan</button>
+      </div>
+    </div>
+    <div class="house-toggle-grid">
+      <label class="house-toggle"><input type="checkbox" data-house-toggle="SetRoofVisibleWeb" checked>Roof</label>
+      <label class="house-toggle"><input type="checkbox" data-house-toggle="SetSecondFloorVisibleWeb" checked>2nd floor</label>
+      <label class="house-toggle"><input type="checkbox" data-house-toggle="SetInteriorWallsVisibleWeb" checked>Interior</label>
+      <label class="house-toggle"><input type="checkbox" data-house-toggle="SetExteriorShellVisibleWeb" checked>Exterior</label>
+      <label class="house-toggle"><input type="checkbox" data-house-toggle="SetCutawayModeWeb">Cutaway</label>
+      <label class="house-toggle"><input type="checkbox" data-house-toggle="SetScanVisibleWeb" checked>Scan</label>
+    </div>
+    <div class="house-control-row">
+      <label class="house-range">
+        <span class="house-control-label">Explode</span>
+        <input id="house-explode" type="range" min="0" max="1" step="0.01" value="0">
+      </label>
+    </div>
+    <div class="house-control-row">
+      <button type="button" class="house-button" id="house-reset">Reset</button>
+    </div>
+  </section>
+  <div id="unity-loading">
+    <div>Loading 3D scene…</div>
+    <div id="unity-loading-bar"><div id="unity-progress"></div></div>
+  </div>
+
+  <script src="Build/house.loader.js"></script>
+  <script>
+    // Minimal host bridge so a standalone build (opened without the web
+    // shell) still surfaces every commerce event in the console.
+    window.UnityCommerceBridge = window.UnityCommerceBridge || {
+      handleUnityEvent: function (eventName, payload) {
+        console.log('[unity-event]', eventName, payload);
+      }
+    };
+
+    const productName = 'Scanned Plan House Preview';
+    const houseControls = document.getElementById('house-controls');
+    const houseTarget = 'HouseModel_ScannedPlan';
+    const isHouseBuild = productName.toLowerCase().indexOf('house') !== -1;
+    if (isHouseBuild && houseControls) {
+      houseControls.hidden = false;
+    }
+
+    function sendHouseMessage(method, value) {
+      if (!window.unityInstance || !isHouseBuild) return;
+      if (value === undefined) {
+        window.unityInstance.SendMessage(houseTarget, method);
+      } else {
+        window.unityInstance.SendMessage(houseTarget, method, String(value));
+      }
+    }
+
+    function bindHouseControls() {
+      if (!isHouseBuild || !houseControls) return;
+
+      houseControls.querySelectorAll('[data-camera-mode]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          houseControls.querySelectorAll('[data-camera-mode]').forEach(function (item) {
+            item.classList.toggle('active', item === button);
+          });
+          sendHouseMessage('SetCameraModeWeb', button.dataset.cameraMode);
+        });
+      });
+
+      houseControls.querySelectorAll('[data-house-toggle]').forEach(function (input) {
+        input.addEventListener('change', function () {
+          sendHouseMessage(input.dataset.houseToggle, input.checked ? 'true' : 'false');
+        });
+      });
+
+      var explode = document.getElementById('house-explode');
+      if (explode) {
+        explode.addEventListener('input', function () {
+          sendHouseMessage('SetExplodedViewWeb', explode.value);
+        });
+      }
+
+      var reset = document.getElementById('house-reset');
+      if (reset) {
+        reset.addEventListener('click', function () {
+          sendHouseMessage('ResetHouseView');
+          if (explode) explode.value = '0';
+          houseControls.querySelectorAll('[data-house-toggle]').forEach(function (input) {
+            input.checked = input.dataset.houseToggle !== 'SetCutawayModeWeb';
+          });
+          houseControls.querySelectorAll('[data-camera-mode]').forEach(function (button) {
+            button.classList.toggle('active', button.dataset.cameraMode === 'orbit');
+          });
+        });
+      }
+    }
+
+    window.addEventListener('message', function (event) {
+      if (event.origin !== window.location.origin || !event.data || event.data.source !== 'our-tasks') return;
+      var methods = {
+        highlightAsset: 'HighlightAsset', highlightRoom: 'HighlightRoom',
+        enterMaintenanceMode: 'EnterMaintenanceMode', exitMaintenanceMode: 'ExitMaintenanceMode',
+        refreshStatuses: 'RefreshStatuses'
+      };
+      var unityMethod = methods[event.data.method];
+      if (!unityMethod || !window.unityInstance) return;
+      var payload = event.data.payload === undefined ? undefined :
+        (typeof event.data.payload === 'string' ? event.data.payload : JSON.stringify(event.data.payload));
+      if (payload === undefined) window.unityInstance.SendMessage('MaintenanceBridge', unityMethod);
+      else window.unityInstance.SendMessage('MaintenanceBridge', unityMethod, payload);
+    });
+
+    window.onUnityAssetSelected = function (payload) {
+      window.parent.postMessage({ source: 'unity-house', type: 'asset-selected', payload: payload }, window.location.origin);
+    };
+
+    createUnityInstance(document.querySelector('#unity-canvas'), {
+      dataUrl: 'Build/house.data',
+      frameworkUrl: 'Build/house.framework.js',
+      codeUrl: 'Build/house.wasm',
+      streamingAssetsUrl: 'StreamingAssets',
+      companyName: 'CommerceDemo',
+      productName: 'Scanned Plan House Preview',
+      productVersion: '1.0'
+    }, function (progress) {
+      document.getElementById('unity-progress').style.width = (progress * 100) + '%';
+    }).then(function (unityInstance) {
+      window.unityInstance = unityInstance;
+      document.getElementById('unity-loading').style.display = 'none';
+      bindHouseControls();
+    }).catch(function (message) {
+      console.error(message);
+    });
+  </script>
+</body>
+</html>

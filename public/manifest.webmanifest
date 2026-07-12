@@ -1,0 +1,16 @@
+{
+  "name": "Our Tasks — Household Care",
+  "short_name": "Our Tasks",
+  "description": "Shared household maintenance, supplies, and home status.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f2eb",
+  "theme_color": "#396b58",
+  "categories": ["lifestyle", "productivity", "utilities"],
+  "icons": [
+    { "src": "icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/app-icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

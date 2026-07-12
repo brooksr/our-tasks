@@ -1,0 +1,78 @@
+{
+  "strategyName": "complete-the-room",
+  "mainProductId": "sofa-001",
+  "items": [
+    {
+      "id": "table-101",
+      "name": "Warm Walnut Coffee Table",
+      "category": "Tables",
+      "price": 149.99,
+      "reason": "Balances the sofa with a warm wood centerpiece",
+      "selectedDefault": true,
+      "color": "#8A5A3B",
+      "material": "wood",
+      "bundlePriority": 1,
+      "sceneObjectType": "coffee_table"
+    },
+    {
+      "id": "rug-102",
+      "name": "Woven Texture Area Rug",
+      "category": "Rugs",
+      "price": 129.99,
+      "reason": "Adds texture and defines the seating area",
+      "selectedDefault": true,
+      "color": "#D8CBB6",
+      "material": "wool-blend",
+      "bundlePriority": 2,
+      "sceneObjectType": "rug"
+    },
+    {
+      "id": "lamp-103",
+      "name": "Soft Glow Floor Lamp",
+      "category": "Lighting",
+      "price": 89.99,
+      "reason": "Creates a cozy reading corner",
+      "selectedDefault": false,
+      "color": "#2E2A26",
+      "material": "metal",
+      "bundlePriority": 3,
+      "sceneObjectType": "floor_lamp"
+    },
+    {
+      "id": "chair-104",
+      "name": "Cushioned Accent Chair",
+      "category": "Chairs",
+      "price": 219.99,
+      "reason": "Completes the conversation layout",
+      "selectedDefault": false,
+      "color": "#7A8087",
+      "material": "fabric",
+      "bundlePriority": 4,
+      "sceneObjectType": "accent_chair"
+    },
+    {
+      "id": "side-105",
+      "name": "Round Pedestal Side Table",
+      "category": "Tables",
+      "price": 69.99,
+      "reason": "Keeps essentials within arm's reach",
+      "selectedDefault": false,
+      "color": "#8A5A3B",
+      "material": "wood",
+      "bundlePriority": 5,
+      "sceneObjectType": "side_table"
+    },
+    {
+      "id": "art-106",
+      "name": "Abstract Canvas Wall Art",
+      "category": "Decor",
+      "price": 59.99,
+      "reason": "Draws the eye and ties the palette together",
+      "selectedDefault": true,
+      "color": "#C99B6E",
+      "material": "canvas",
+      "bundlePriority": 6,
+      "sceneObjectType": "wall_art"
+    }
+  ]
+}

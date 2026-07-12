@@ -1,0 +1,21 @@
+{
+  "products": [
+    {
+      "id": "sofa-001",
+      "name": "Neutral Comfort Sofa",
+      "price": 399.99,
+      "rating": 4.7,
+      "reviews": 541,
+      "category": "Sofas",
+      "description": "An everyday sofa built for real life: deep cushions, durable neutral upholstery, and proportions that make any living room easy to style. Pair it with a few well-chosen pieces and the whole room comes together.",
+      "sceneObjectType": "sofa",
+      "variants": [
+        { "id": "oat-beige", "name": "Oat Beige", "color": "#C9B79C" },
+        { "id": "slate-gray", "name": "Slate Gray", "color": "#7A8087" },
+        { "id": "forest-green", "name": "Forest Green", "color": "#4F6352" },
+        { "id": "terracotta", "name": "Terracotta", "color": "#B36A4C" },
+        { "id": "midnight-navy", "name": "Midnight Navy", "color": "#3A4A63" }
+      ]
+    }
+  ]
+}

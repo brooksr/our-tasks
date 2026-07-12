@@ -1,0 +1,35 @@
+{
+  "retailerName": "Slumberland Concept Test",
+  "demoLabel": "3D Complete-the-Room Demo",
+  "industry": "furniture",
+  "currency": "USD",
+  "currencySymbol": "$",
+  "theme": {
+    "primaryColor": "#8A5A3B",
+    "accentColor": "#C99B6E",
+    "backgroundColor": "#FAF6F1",
+    "surfaceColor": "#FFFFFF",
+    "textColor": "#2E2A26"
+  },
+  "nav": ["Living Room", "Mattresses", "Bedroom", "Dining", "Sale"],
+  "mainProductId": "sofa-001",
+  "recommendationStrategyName": "complete-the-room",
+  "scenePreset": {
+    "roomPreset": "standard",
+    "wallColor": "#EFE7DC",
+    "floorColor": "#B08D6A",
+    "ambientIntensity": 1.0
+  },
+  "ui": {
+    "breadcrumb": "Home / Living Room / Sofas",
+    "moduleTitle": "Complete the room",
+    "moduleSubtitle": "Preview matching pieces around your sofa and add the full look.",
+    "mainCtaLabel": "Add Sofa to Cart",
+    "colorLabel": "Sofa color",
+    "roomSizes": [
+      { "id": "apartment", "label": "Apartment" },
+      { "id": "standard", "label": "Standard" },
+      { "id": "large", "label": "Large" }
+    ]
+  }
+}
