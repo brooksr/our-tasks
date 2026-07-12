@@ -1,14 +1,15 @@
-import { AlertCircle, Boxes, CheckCircle2, ChevronRight, ClipboardCheck, History, Home, House, ListFilter, LogIn, Moon, Package, Plus, RefreshCw, Search, Settings, Sun, UserRound, WifiOff, X } from 'lucide-react';
+import { AlertCircle, Boxes, CheckCircle2, ChevronRight, ClipboardCheck, History, Home, House, ListFilter, Moon, Package, Plus, RefreshCw, Search, Settings, Sun, UserRound, WifiOff, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActionDialog } from './components/ActionDialog';
 import { HouseView } from './components/HouseView';
 import { TaskCard } from './components/TaskCard';
 import { TaskEditorDialog } from './components/TaskEditorDialog';
+import { GoogleSignInButton } from './components/GoogleSignInButton';
 import { APP_CONFIG, isGoogleConfigured } from './config';
 import { CATEGORIES } from './domain/seed';
 import { dueState } from './domain/recurrence';
 import type { HouseholdSnapshot, MaintenanceTask, RepositoryStatus, TaskActionInput } from './domain/types';
-import { signInWithGoogle } from './storage/googleAuth';
+import { getGoogleCredential } from './storage/googleAuth';
 import { householdRepository } from './storage';
 
 type View = 'home' | 'tasks' | 'house' | 'supplies' | 'settings';
@@ -28,7 +29,7 @@ function App() {
   const [snapshot, setSnapshot] = useState<HouseholdSnapshot | null>(null);
   const [view, setView] = useState<View>('home');
   const [status, setStatus] = useState(householdRepository.getStatus());
-  const [signedIn, setSignedIn] = useState(!isGoogleConfigured());
+  const [signedIn, setSignedIn] = useState(!isGoogleConfigured() || Boolean(getGoogleCredential()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('our-tasks.theme') as 'light' | 'dark') || 'light');
@@ -58,12 +59,16 @@ function App() {
     refresh().catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to open household data.')).finally(() => setLoading(false));
   }, [refresh, signedIn]);
 
-  async function googleSignIn() {
+  const googleSignIn = useCallback(async () => {
     setLoading(true); setError('');
-    try { await signInWithGoogle(); setSignedIn(true); await householdRepository.sync().then(setSnapshot); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : 'Sign-in failed.'); }
+    try { const data = await householdRepository.sync(); setSnapshot(data); setSignedIn(true); }
+    catch (caught) { setSignedIn(false); setError(caught instanceof Error ? caught.message : 'Sign-in failed.'); }
     finally { setLoading(false); }
-  }
+  }, []);
+
+  const googleSignInError = useCallback((caught: Error) => {
+    setLoading(false); setError(caught.message || 'Sign-in failed.');
+  }, []);
 
   async function performAction(values: Omit<TaskActionInput, 'taskId' | 'performedBy' | 'expectedVersion' | 'action'>) {
     if (!action) return;
@@ -90,7 +95,7 @@ function App() {
       .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
   }, [snapshot, category, person, query]);
 
-  if (!signedIn) return <main className="login-page"><section className="login-card"><div className="brand-mark"><House aria-hidden="true" /></div><span className="eyebrow">Private household space</span><h1>Care for the place<br />that cares for you.</h1><p>Shared maintenance, supplies, and a task-aware view of home.</p>{error && <p className="error-banner" role="alert">{error}</p>}<button className="google-button" type="button" onClick={googleSignIn} disabled={loading}><LogIn aria-hidden="true" /> Continue with Google</button><small>Access is limited to active household accounts in the Users sheet.</small></section></main>;
+  if (!signedIn) return <main className="login-page"><section className="login-card"><div className="brand-mark"><House aria-hidden="true" /></div><span className="eyebrow">Private household space</span><h1>Care for the place<br />that cares for you.</h1><p>Shared maintenance, supplies, and a task-aware view of home.</p>{error && <p className="error-banner" role="alert">{error}</p>}<GoogleSignInButton disabled={loading} onError={googleSignInError} onSignedIn={googleSignIn} />{loading && <p className="signin-progress">Opening your household…</p>}<small>Access is limited to active household accounts in the Users sheet.</small></section></main>;
   if (loading || !snapshot) return <main className="loading-page"><div className="brand-mark"><House aria-hidden="true" /></div><RefreshCw className="spin" aria-hidden="true" /><p>Opening your household…</p></main>;
 
   const overdue = tasks.filter((task) => dueState(task) === 'overdue');

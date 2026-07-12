@@ -1,10 +1,25 @@
 import { AUTH_CONFIG } from '../config';
 
 interface CredentialResponse { credential?: string; select_by?: string; }
+interface GoogleButtonOptions {
+  type?: 'standard' | 'icon';
+  theme?: 'outline' | 'filled_blue' | 'filled_black';
+  size?: 'large' | 'medium' | 'small';
+  text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
+  shape?: 'rectangular' | 'pill' | 'circle' | 'square';
+  logo_alignment?: 'left' | 'center';
+  width?: number;
+}
 interface GoogleAccounts {
   id: {
-    initialize(options: { client_id: string; callback: (response: CredentialResponse) => void; auto_select?: boolean }): void;
-    prompt(callback?: (notification: { isNotDisplayed(): boolean; getNotDisplayedReason(): string }) => void): void;
+    initialize(options: {
+      client_id: string;
+      callback: (response: CredentialResponse) => void;
+      auto_select?: boolean;
+      use_fedcm_for_button?: boolean;
+      button_auto_select?: boolean;
+    }): void;
+    renderButton(parent: HTMLElement, options: GoogleButtonOptions): void;
     disableAutoSelect(): void;
   };
 }
@@ -23,22 +38,35 @@ function waitForGoogle() {
   });
 }
 
-export async function signInWithGoogle() {
+export async function renderGoogleSignInButton(
+  parent: HTMLElement,
+  onSignedIn: () => void | Promise<void>,
+  onError: (error: Error) => void
+) {
   const accounts = await waitForGoogle();
-  return new Promise<string>((resolve, reject) => {
-    accounts.id.initialize({
-      client_id: AUTH_CONFIG.googleClientId,
-      auto_select: true,
-      callback: (response) => {
-        if (!response.credential) { reject(new Error('Google did not return an identity token.')); return; }
-        credential = response.credential;
-        sessionStorage.setItem('our-tasks.google-id-token', credential);
-        resolve(credential);
-      }
-    });
-    accounts.id.prompt((notice) => {
-      if (notice.isNotDisplayed()) reject(new Error(`Google Sign-In unavailable: ${notice.getNotDisplayedReason()}`));
-    });
+  accounts.id.initialize({
+    client_id: AUTH_CONFIG.googleClientId,
+    auto_select: false,
+    use_fedcm_for_button: true,
+    button_auto_select: false,
+    callback: (response) => {
+      if (!response.credential) { onError(new Error('Google did not return an identity token.')); return; }
+      credential = response.credential;
+      sessionStorage.setItem('our-tasks.google-id-token', credential);
+      Promise.resolve(onSignedIn()).catch((error: unknown) => {
+        onError(error instanceof Error ? error : new Error('Google sign-in failed.'));
+      });
+    }
+  });
+  parent.replaceChildren();
+  accounts.id.renderButton(parent, {
+    type: 'standard',
+    theme: 'outline',
+    size: 'large',
+    text: 'continue_with',
+    shape: 'rectangular',
+    logo_alignment: 'left',
+    width: Math.min(360, Math.max(240, parent.clientWidth || 320))
   });
 }
 
