@@ -1,4 +1,4 @@
-import type { Asset, HouseholdSnapshot, MaintenanceTask, RecurrenceConfig, Room, Supply } from './types';
+import type { Asset, HouseholdSnapshot, MaintenanceTask, RecurrenceConfig, Room, ShoppingItem, Supply } from './types';
 
 const now = '2026-07-12T15:00:00.000Z';
 const base = { active: true, createdAt: now, updatedAt: now, version: 1 };
@@ -63,6 +63,28 @@ const supplies: Supply[] = supplySeeds.map(([id, name, category, quantity, thres
   ...base, id: `supply-${id}`, name, category, unit: 'unit', quantity, reorderThreshold: threshold, reorderQuantity: 1
 }));
 
+// Ordered so the list reads like a walk through the store. Also used to group the Shopping view.
+export const SHOPPING_CATEGORIES = ['Produce', 'Bakery', 'Dairy', 'Deli', 'Pantry', 'Frozen', 'Beverages', 'Household', 'Pet'];
+const shoppingSeeds: Array<[string, string]> = [
+  ['Onions', 'Produce'], ['Apples', 'Produce'], ['Mini bell peppers', 'Produce'], ['Avocados', 'Produce'],
+  ['Cilantro', 'Produce'], ['Lime', 'Produce'], ['Grape tomatoes', 'Produce'],
+  ['Bagels', 'Bakery'],
+  ['Creamer', 'Dairy'], ['Cream cheese', 'Dairy'], ['Oat milk', 'Dairy'], ['Yogurt', 'Dairy'],
+  ['Hummus', 'Deli'],
+  ['Barley', 'Pantry'], ['Cereal', 'Pantry'], ['Cheerios', 'Pantry'], ['Tomato sauce (small can)', 'Pantry'],
+  ['Diced tomatoes', 'Pantry'], ['Pasta sauce', 'Pantry'], ['Cumin', 'Pantry'], ['Artichoke hearts', 'Pantry'],
+  ['Snack bars', 'Pantry'], ['Dried fruit', 'Pantry'], ['White rice', 'Pantry'], ['Maple syrup', 'Pantry'], ['Chicken broth', 'Pantry'],
+  ['Frozen corn', 'Frozen'], ['Frozen pizza', 'Frozen'],
+  ['Coconut water', 'Beverages'], ['Seltzer', 'Beverages'], ['Tart cherry juice', 'Beverages'], ['OJ', 'Beverages'],
+  ['Laundry detergent', 'Household'], ['Dawn dish soap', 'Household'], ['Hand sanitizer', 'Household'], ['Hand soap', 'Household'],
+  ['Easy-Off oven cleaner', 'Household'], ['Shout stain remover', 'Household'], ['Lysol all-purpose cleaner', 'Household'],
+  ['Thank you cards', 'Household'], ['Toilet paper', 'Household'], ['Paper towels', 'Household'], ['Goo Gone', 'Household'],
+  ['Poop bags', 'Pet'], ['Dog food', 'Pet']
+];
+const shopping: ShoppingItem[] = shoppingSeeds.map(([name, category], index) => ({
+  ...base, id: `shop-${index + 1}`, name, category, checked: false, addedBy: 'primary'
+}));
+
 export function createSeedSnapshot(): HouseholdSnapshot {
   return {
     users: [
@@ -70,7 +92,7 @@ export function createSeedSnapshot(): HouseholdSnapshot {
       { ...base, id: 'secondary', email: 'demo-secondary@local', displayName: 'Wife', role: 'member' },
       { ...base, id: 'household', email: 'demo-household@local', displayName: 'Household', role: 'member' }
     ],
-    rooms, assets, tasks, supplies,
+    rooms, assets, tasks, supplies, shopping,
     events: [{ id: 'event-seed', taskId: 'task-litter-scoop', eventType: 'completed', eventDate: '2026-07-11T16:00:00.000Z', performedBy: 'secondary', previousDueDate: '2026-07-11', nextDueDate: '2026-07-12', notes: 'All done.', createdAt: '2026-07-11T16:00:00.000Z' }]
   };
 }

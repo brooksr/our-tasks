@@ -1,9 +1,11 @@
 import { APP_CONFIG } from '../config';
-import { ConflictError, type HouseholdSnapshot, type MaintenanceTask, type TaskActionInput } from '../domain/types';
+import { ConflictError, type HouseholdSnapshot, type Id, type MaintenanceTask, type TaskActionInput } from '../domain/types';
 import { getGoogleCredential } from './googleAuth';
 import { LocalHouseholdRepository } from './localRepository';
 
 interface ApiResponse<T> { success: boolean; data: T; error?: { code: string; message: string; details?: unknown }; serverTime: string; }
+
+const QUEUE_ACTIONS = { action: 'task.action', saveTask: 'tasks.upsert', shoppingUpsert: 'shopping.upsert', shoppingDelete: 'shopping.delete' } as const;
 
 export class AppsScriptHouseholdRepository extends LocalHouseholdRepository {
   private async request<T>(action: string, payload: unknown = {}) {
@@ -35,10 +37,11 @@ export class AppsScriptHouseholdRepository extends LocalHouseholdRepository {
     try {
       const queue = await this.queuedActions();
       for (const item of queue) {
-        await this.request(item.type === 'action' ? 'task.action' : 'tasks.upsert', item.payload);
+        await this.request(QUEUE_ACTIONS[item.type], item.payload);
       }
       await this.clearQueuedActions();
-      const snapshot = await this.request<HouseholdSnapshot>('bootstrap');
+      const bootstrapped = await this.request<HouseholdSnapshot>('bootstrap');
+      const snapshot = { ...bootstrapped, shopping: bootstrapped.shopping ?? [] };
       await this.persist(snapshot);
       this.setStatus({ state: 'synced', message: undefined });
       return snapshot;
@@ -57,6 +60,24 @@ export class AppsScriptHouseholdRepository extends LocalHouseholdRepository {
 
   override async performAction(input: TaskActionInput) {
     const snapshot = await super.performAction(input);
+    if (navigator.onLine) void this.sync().catch(() => undefined);
+    return snapshot;
+  }
+
+  override async addShoppingItem(name: string, category?: string) {
+    const snapshot = await super.addShoppingItem(name, category);
+    if (navigator.onLine) void this.sync().catch(() => undefined);
+    return snapshot;
+  }
+
+  override async toggleShoppingItem(id: Id) {
+    const snapshot = await super.toggleShoppingItem(id);
+    if (navigator.onLine) void this.sync().catch(() => undefined);
+    return snapshot;
+  }
+
+  override async clearCheckedShopping() {
+    const snapshot = await super.clearCheckedShopping();
     if (navigator.onLine) void this.sync().catch(() => undefined);
     return snapshot;
   }

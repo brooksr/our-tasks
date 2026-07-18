@@ -1,7 +1,8 @@
-import { AlertCircle, Boxes, CheckCircle2, ChevronRight, ClipboardCheck, History, Home, House, ListFilter, Moon, Package, Plus, RefreshCw, Search, Settings, Sun, UserRound, WifiOff, X } from 'lucide-react';
+import { AlertCircle, Boxes, CheckCircle2, ChevronRight, ClipboardCheck, History, Home, House, ListFilter, Moon, Plus, RefreshCw, Search, Settings, ShoppingCart, Sun, UserRound, WifiOff, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActionDialog } from './components/ActionDialog';
 import { HouseView } from './components/HouseView';
+import { ShoppingList } from './components/ShoppingList';
 import { TaskCard } from './components/TaskCard';
 import { TaskEditorDialog } from './components/TaskEditorDialog';
 import { GoogleSignInButton } from './components/GoogleSignInButton';
@@ -12,10 +13,10 @@ import type { HouseholdSnapshot, MaintenanceTask, RepositoryStatus, TaskActionIn
 import { getGoogleCredential } from './storage/googleAuth';
 import { householdRepository } from './storage';
 
-type View = 'home' | 'tasks' | 'house' | 'supplies' | 'settings';
+type View = 'home' | 'tasks' | 'house' | 'shopping' | 'settings';
 const views: Array<{ id: View; label: string; icon: typeof Home }> = [
   { id: 'home', label: 'Home', icon: Home }, { id: 'tasks', label: 'Tasks', icon: ClipboardCheck },
-  { id: 'house', label: 'House', icon: House }, { id: 'supplies', label: 'Supplies', icon: Package },
+  { id: 'house', label: 'House', icon: House }, { id: 'shopping', label: 'Shopping', icon: ShoppingCart },
   { id: 'settings', label: 'Settings', icon: Settings }
 ];
 
@@ -91,6 +92,23 @@ function App() {
     catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to sync household data.'); }
   }
 
+  async function shoppingChange(run: () => Promise<HouseholdSnapshot>) {
+    try { setSnapshot(await run()); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to update the shopping list.'); }
+  }
+
+  async function stockLowSupplies(low: HouseholdSnapshot['supplies']) {
+    if (!snapshot) return;
+    const onList = new Set(snapshot.shopping.filter((item) => item.active).map((item) => item.name.toLowerCase()));
+    const missing = low.filter((supply) => !onList.has(supply.name.toLowerCase()));
+    await shoppingChange(async () => {
+      let data = snapshot;
+      for (const supply of missing) data = await householdRepository.addShoppingItem(supply.name, supply.category === 'Pets' ? 'Pet' : 'Household');
+      return data;
+    });
+    setView('shopping');
+  }
+
   const tasks = useMemo(() => {
     if (!snapshot) return [];
     const needle = query.trim().toLowerCase();
@@ -101,7 +119,7 @@ function App() {
       .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
   }, [snapshot, category, person, query]);
 
-  if (!signedIn) return <main className="login-page"><section className="login-card"><div className="brand-mark"><House aria-hidden="true" /></div><span className="eyebrow">Private household space</span><h1>Care for the place<br />that cares for you.</h1><p>Shared maintenance, supplies, and a task-aware view of home.</p>{error && <p className="error-banner" role="alert">{error}</p>}<GoogleSignInButton disabled={loading} onError={googleSignInError} onSignedIn={googleSignIn} />{loading && <p className="signin-progress">Opening your household…</p>}<small>Access is limited to active household accounts in the Users sheet.</small></section></main>;
+  if (!signedIn) return <main className="login-page"><section className="login-card"><div className="brand-mark"><House aria-hidden="true" /></div><span className="eyebrow">Private household space</span><h1>Care for the place<br />that cares for you.</h1><p>Shared maintenance, shopping, and a task-aware view of home.</p>{error && <p className="error-banner" role="alert">{error}</p>}<GoogleSignInButton disabled={loading} onError={googleSignInError} onSignedIn={googleSignIn} />{loading && <p className="signin-progress">Opening your household…</p>}<small>Access is limited to active household accounts in the Users sheet.</small></section></main>;
   if (loading || !snapshot) return <main className="loading-page"><div className="brand-mark"><House aria-hidden="true" /></div><RefreshCw className="spin" aria-hidden="true" /><p>Opening your household…</p></main>;
 
   const overdue = tasks.filter((task) => dueState(task) === 'overdue');
@@ -128,7 +146,7 @@ function App() {
             <section className="task-section"><div className="section-heading"><div><span className="section-dot today" /><h2>Today</h2></div><span>{today.length}</span></div>{today.length ? taskList(today) : <div className="empty-state"><CheckCircle2 aria-hidden="true" /><p>No more tasks due today.</p></div>}</section>
             {soon.length > 0 && <section className="task-section"><div className="section-heading"><div><span className="section-dot soon" /><h2>Later this week</h2></div><button onClick={() => setView('tasks')}>View all</button></div>{taskList(soon.slice(0, 3))}</section>}
           </div><aside className="dashboard-aside">
-            <section className="aside-card"><div className="section-heading"><div><Boxes aria-hidden="true" /><h2>Low supplies</h2></div></div>{lowSupplies.length ? lowSupplies.map((supply) => <div className="supply-row" key={supply.id}><span>{supply.name}<small>{supply.quantity} {supply.unit} left</small></span><span className="low-badge">Low</span></div>) : <p className="muted">Everything is stocked.</p>}<button className="text-button" onClick={() => setView('supplies')}>Manage supplies <ChevronRight aria-hidden="true" /></button></section>
+            <section className="aside-card"><div className="section-heading"><div><Boxes aria-hidden="true" /><h2>Low supplies</h2></div></div>{lowSupplies.length ? lowSupplies.map((supply) => <div className="supply-row" key={supply.id}><span>{supply.name}<small>{supply.quantity} {supply.unit} left</small></span><span className="low-badge">Low</span></div>) : <p className="muted">Everything is stocked.</p>}<button className="text-button" onClick={() => lowSupplies.length ? stockLowSupplies(lowSupplies) : setView('shopping')}>{lowSupplies.length ? 'Add to shopping list' : 'Open shopping list'} <ChevronRight aria-hidden="true" /></button></section>
             <section className="aside-card"><div className="section-heading"><div><UserRound aria-hidden="true" /><h2>Assignment balance</h2></div></div><div className="workload"><div><span>Brooks</span><strong>{countFor('primary')}</strong></div><div className="workload-bar"><i style={{ width: `${Math.max(8, countFor('primary') / Math.max(1, countFor('primary') + countFor('secondary')) * 100)}%` }} /></div><div><span>Wife</span><strong>{countFor('secondary')}</strong></div></div></section>
             <section className="aside-card"><div className="section-heading"><div><History aria-hidden="true" /><h2>Recently completed</h2></div></div>{recent.map((event) => <button className="recent-row" key={event.id} onClick={() => setHistoryTask(snapshot.tasks.find((task) => task.id === event.taskId) || null)}><CheckCircle2 aria-hidden="true" /><span>{snapshot.tasks.find((task) => task.id === event.taskId)?.title || 'Task'}<small>{new Date(event.eventDate).toLocaleDateString()}</small></span></button>)}</section>
           </aside></div>
@@ -136,7 +154,7 @@ function App() {
 
         {view === 'tasks' && <section className="page-view"><div className="page-heading"><div><span className="eyebrow">Shared household</span><h1>Tasks</h1><p>{tasks.length} open tasks across the home.</p></div><button className="primary" type="button" onClick={() => setEditingTask('new')}><Plus aria-hidden="true" /> New task</button></div><div className="filter-bar"><label className="search-field"><Search aria-hidden="true" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search tasks, rooms, assets…" /></label><label><ListFilter aria-hidden="true" /><select value={category} onChange={(e) => setCategory(e.target.value)}><option>All</option>{CATEGORIES.map((item) => <option key={item}>{item}</option>)}</select></label><label><UserRound aria-hidden="true" /><select value={person} onChange={(e) => setPerson(e.target.value)}><option>All</option><option value="primary">Brooks</option><option value="secondary">Wife</option><option value="either">Either</option><option value="shared">Shared</option></select></label></div><div className="task-section">{taskList(tasks)}</div></section>}
         {view === 'house' && <section className="page-view house-page"><div className="page-heading"><div><span className="eyebrow">Maintenance mode</span><h1>House view</h1><p>Select rooms and assets in the 3D home.</p></div></div><HouseView tasks={tasks} onSelection={(selection) => { const matched = tasks.find((task) => task.assetId === selection.assetId || task.roomId === selection.roomId); if (matched) setHistoryTask(matched); }} /></section>}
-        {view === 'supplies' && <section className="page-view"><div className="page-heading"><div><span className="eyebrow">Household stock</span><h1>Supplies</h1><p>Completing tasks can deduct the amount used.</p></div></div><div className="supply-grid">{snapshot.supplies.map((supply) => <article className="supply-card" key={supply.id}><div><span className="category-icon"><Package aria-hidden="true" /></span>{supply.quantity <= supply.reorderThreshold && <span className="low-badge">Low stock</span>}</div><h2>{supply.name}</h2><strong>{supply.quantity} <small>{supply.unit}</small></strong><div className="stock-meter"><i style={{ width: `${Math.min(100, supply.quantity / Math.max(1, supply.reorderThreshold * 2) * 100)}%` }} /></div><p>Reorder at {supply.reorderThreshold} · Buy {supply.reorderQuantity}</p></article>)}</div></section>}
+        {view === 'shopping' && <ShoppingList items={snapshot.shopping} onAdd={(name, category) => shoppingChange(() => householdRepository.addShoppingItem(name, category))} onToggle={(id) => shoppingChange(() => householdRepository.toggleShoppingItem(id))} onClearChecked={() => shoppingChange(() => householdRepository.clearCheckedShopping())} />}
         {view === 'settings' && <section className="page-view settings-view"><div className="page-heading"><div><span className="eyebrow">Configuration</span><h1>Settings</h1><p>Household data, reminders, and integrations.</p></div></div><article className="settings-card"><h2>Data connection</h2><dl><div><dt>Mode</dt><dd>{isGoogleConfigured() ? 'Google Apps Script + Sheets' : 'Local demo'}</dd></div><div><dt>Sync</dt><dd>{status.state}{status.pending ? ` (${status.pending} queued)` : ''}</dd></div>{status.message && <div><dt>Last error</dt><dd>{status.message}</dd></div>}<div><dt>Timezone</dt><dd>{APP_CONFIG.timezone}</dd></div></dl><button className="secondary" onClick={syncNow}>Sync now</button></article><article className="settings-card"><h2>Reminders</h2><p>Daily summaries are scheduled for 8:00 AM. Weekly household summaries run Sunday at 8:00 AM after Apps Script triggers are installed.</p></article><article className="settings-card"><h2>BabySteps</h2><p>Only a future summary-card interface is reserved here. No baby care or health data is stored in this app.</p>{APP_CONFIG.babyAppUrl && <a className="secondary button-link" href={APP_CONFIG.babyAppUrl}>Open BabySteps</a>}</article></section>}
       </main>
 

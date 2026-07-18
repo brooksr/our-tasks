@@ -76,6 +76,19 @@ function seedRecommendedData() {
   if (readAll('Supplies').length === 0) {
     [['kitty-litter','Kitty litter','Pets',1,1],['hvac-filter','HVAC filters','Appliances',0,1],['fridge-filter','Refrigerator water filters','Appliances',1,1],['hot-tub-sanitizer','Hot-tub sanitizer','Hot Tub',2,1],['ph-up','pH increaser','Hot Tub',1,1],['ph-down','pH decreaser','Hot Tub',1,1],['alkalinity','Alkalinity increaser','Hot Tub',1,1],['filter-cleaner','Hot-tub filter cleaner','Hot Tub',0.5,0.5],['plant-food','Plant fertilizer','Plants',1,0.5],['weed-supplies','Weed-removal supplies','Yard',1,0.5],['vehicle-cleaner','Vehicle cleaning supplies','Vehicle',1,0.5]].forEach(function(item){ upsert('Supplies', { id:'supply-' + item[0], name:item[1], category:item[2], unit:'unit', quantity:item[3], reorderThreshold:item[4], reorderQuantity:1 }, 'setup'); });
   }
+  if (readAll('Shopping').length === 0) {
+    [
+      ['Onions','Produce'],['Apples','Produce'],['Mini bell peppers','Produce'],['Avocados','Produce'],['Cilantro','Produce'],['Lime','Produce'],['Grape tomatoes','Produce'],
+      ['Bagels','Bakery'],
+      ['Creamer','Dairy'],['Cream cheese','Dairy'],['Oat milk','Dairy'],['Yogurt','Dairy'],
+      ['Hummus','Deli'],
+      ['Barley','Pantry'],['Cereal','Pantry'],['Cheerios','Pantry'],['Tomato sauce (small can)','Pantry'],['Diced tomatoes','Pantry'],['Pasta sauce','Pantry'],['Cumin','Pantry'],['Artichoke hearts','Pantry'],['Snack bars','Pantry'],['Dried fruit','Pantry'],['White rice','Pantry'],['Maple syrup','Pantry'],['Chicken broth','Pantry'],
+      ['Frozen corn','Frozen'],['Frozen pizza','Frozen'],
+      ['Coconut water','Beverages'],['Seltzer','Beverages'],['Tart cherry juice','Beverages'],['OJ','Beverages'],
+      ['Laundry detergent','Household'],['Dawn dish soap','Household'],['Hand sanitizer','Household'],['Hand soap','Household'],['Easy-Off oven cleaner','Household'],['Shout stain remover','Household'],['Lysol all-purpose cleaner','Household'],['Thank you cards','Household'],['Toilet paper','Household'],['Paper towels','Household'],['Goo Gone','Household'],
+      ['Poop bags','Pet'],['Dog food','Pet']
+    ].forEach(function(item){ upsert('Shopping', { name:item[0], category:item[1], checked:false, addedBy:'primary', note:'' }, 'setup'); });
+  }
   setSetting('dailyEmailEnabled', 'true', 'Enable the daily household summary', 'setup');
   setSetting('weeklyEmailEnabled', 'true', 'Enable the weekly household summary', 'setup');
   setSetting('appUrl', PropertiesService.getScriptProperties().getProperty('APP_URL') || '', 'GitHub Pages application URL', 'setup');

@@ -1,11 +1,12 @@
 import Dexie, { type Table } from 'dexie';
 import { applyTaskAction } from '../domain/actions';
+import { clearCheckedShopping, newShoppingItem, toggleShopping } from '../domain/shopping';
 import { createSeedSnapshot } from '../domain/seed';
-import { ConflictError, type HouseholdSnapshot, type MaintenanceTask, type RepositoryStatus, type TaskActionInput } from '../domain/types';
+import { ConflictError, type HouseholdSnapshot, type Id, type MaintenanceTask, type RepositoryStatus, type TaskActionInput } from '../domain/types';
 import type { HouseholdRepository } from './repository';
 
 interface StateRow { key: string; value: HouseholdSnapshot; }
-interface QueueRow { id?: number; createdAt: string; type: 'saveTask' | 'action'; payload: unknown; }
+interface QueueRow { id?: number; createdAt: string; type: 'saveTask' | 'action' | 'shoppingUpsert' | 'shoppingDelete'; payload: unknown; }
 
 class HouseholdDb extends Dexie {
   state!: Table<StateRow, string>;
@@ -75,6 +76,33 @@ export class LocalHouseholdRepository implements HouseholdRepository {
     await this.persist(result.snapshot);
     await this.enqueue('action', input);
     return result.snapshot;
+  }
+
+  async addShoppingItem(name: string, category = 'Other') {
+    const trimmed = name.trim();
+    if (!trimmed) return this.getSnapshot();
+    const snapshot = await this.getSnapshot();
+    const item = newShoppingItem(trimmed, category);
+    const next = await this.persist({ ...snapshot, shopping: [item, ...snapshot.shopping] });
+    await this.enqueue('shoppingUpsert', item);
+    return next;
+  }
+
+  async toggleShoppingItem(id: Id) {
+    const snapshot = await this.getSnapshot();
+    const shopping = toggleShopping(snapshot.shopping, id);
+    const updated = shopping.find((item) => item.id === id);
+    const next = await this.persist({ ...snapshot, shopping });
+    if (updated) await this.enqueue('shoppingUpsert', updated);
+    return next;
+  }
+
+  async clearCheckedShopping() {
+    const snapshot = await this.getSnapshot();
+    const { items, removed } = clearCheckedShopping(snapshot.shopping);
+    const next = await this.persist({ ...snapshot, shopping: items });
+    for (const item of removed) await this.enqueue('shoppingDelete', { id: item.id, expectedVersion: item.version });
+    return next;
   }
 
   async sync() {

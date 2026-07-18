@@ -3,7 +3,7 @@
 const TZ = 'America/Los_Angeles';
 const DEFAULT_SPREADSHEET_ID = '1lY8G7YZl3n3xvwTWpp1A4z-50gdH2D96Q6jD9bJxCDs';
 const JSON_FIELDS = ['locationIds', 'unityObjectIds', 'recurrenceConfig', 'capabilities', 'readings', 'suppliesUsed', 'attachmentUrls'];
-const SOFT_DELETE = ['Rooms', 'Assets', 'Tasks', 'Supplies', 'DeviceMappings'];
+const SOFT_DELETE = ['Rooms', 'Assets', 'Tasks', 'Supplies', 'Shopping', 'DeviceMappings'];
 const SCHEMAS = {
   Users: ['id','email','displayName','role','active','createdAt','updatedAt','version'],
   Rooms: ['id','name','floor','zone','unityObjectId','notes','active','createdAt','updatedAt','version','deletedAt'],
@@ -11,11 +11,12 @@ const SCHEMAS = {
   Tasks: ['id','title','description','category','roomId','assetId','locationIds','unityObjectIds','assignedTo','assignmentMode','priority','status','dueDate','dueWindowStart','dueWindowEnd','recurrenceType','recurrenceConfig','nextDateStrategy','seasonalRegion','estimatedMinutes','defaultSnoozeDays','requiresReading','requiresMileage','requiresUsageCount','active','createdBy','createdAt','updatedAt','version','deletedAt'],
   TaskEvents: ['id','taskId','eventType','eventDate','performedBy','previousDueDate','nextDueDate','notes','reason','cost','mileage','usageCount','timeSpentMinutes','readings','suppliesUsed','attachmentUrls','createdAt'],
   Supplies: ['id','name','category','assetId','unit','quantity','reorderThreshold','reorderQuantity','preferredProductUrl','notes','active','createdAt','updatedAt','version','deletedAt'],
+  Shopping: ['id','name','category','checked','addedBy','note','active','createdAt','updatedAt','version','deletedAt'],
   TaskSupplies: ['id','taskId','supplyId','defaultQuantityUsed','required','createdAt','updatedAt'],
   DeviceMappings: ['id','assetId','unityObjectId','provider','deviceId','deviceType','capabilities','enabled','createdAt','updatedAt','version','active','deletedAt'],
   Settings: ['key','value','description','updatedAt','updatedBy']
 };
-const ENTITY_MAP = { users:'Users', rooms:'Rooms', assets:'Assets', tasks:'Tasks', events:'TaskEvents', supplies:'Supplies', taskSupplies:'TaskSupplies', deviceMappings:'DeviceMappings', settings:'Settings' };
+const ENTITY_MAP = { users:'Users', rooms:'Rooms', assets:'Assets', tasks:'Tasks', events:'TaskEvents', supplies:'Supplies', shopping:'Shopping', taskSupplies:'TaskSupplies', deviceMappings:'DeviceMappings', settings:'Settings' };
 
 function doGet() {
   return output({ success:true, data:{ service:'our-tasks', status:'ok' }, error:null, serverTime:isoNow() });
@@ -36,7 +37,7 @@ function doPost(event) {
 function route(action, payload, user) {
   if (action === 'bootstrap') return bootstrap();
   if (action === 'task.action') return taskAction(payload, user);
-  const match = /^(users|rooms|assets|tasks|events|supplies|taskSupplies|deviceMappings|settings)\.(list|get|upsert|delete)$/.exec(action || '');
+  const match = /^(users|rooms|assets|tasks|events|supplies|shopping|taskSupplies|deviceMappings|settings)\.(list|get|upsert|delete)$/.exec(action || '');
   if (!match) fail('UNKNOWN_ACTION', 'Unknown API action.');
   const sheetName = ENTITY_MAP[match[1]];
   if (sheetName === 'TaskEvents' && (match[2] === 'upsert' || match[2] === 'delete')) fail('IMMUTABLE_HISTORY', 'Task events are append-only.');
@@ -83,7 +84,7 @@ function authorizedEmails() {
 function bootstrap() {
   return {
     users:readAll('Users'), rooms:readAll('Rooms'), assets:readAll('Assets'), tasks:readAll('Tasks'),
-    events:readAll('TaskEvents'), supplies:readAll('Supplies'), taskSupplies:readAll('TaskSupplies'),
+    events:readAll('TaskEvents'), supplies:readAll('Supplies'), shopping:readAll('Shopping'), taskSupplies:readAll('TaskSupplies'),
     deviceMappings:readAll('DeviceMappings'), settings:readAll('Settings')
   };
 }

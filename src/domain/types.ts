@@ -110,6 +110,14 @@ export interface Supply extends VersionedEntity {
 
 export interface SupplyUsage { supplyId: Id; quantity: number; }
 
+export interface ShoppingItem extends VersionedEntity {
+  name: string;
+  category: string;
+  checked: boolean;
+  addedBy: Id;
+  note?: string;
+}
+
 export interface TaskEvent {
   id: Id;
   taskId: Id;
@@ -137,6 +145,7 @@ export interface HouseholdSnapshot {
   tasks: MaintenanceTask[];
   events: TaskEvent[];
   supplies: Supply[];
+  shopping: ShoppingItem[];
 }
 
 export interface TaskActionInput {
